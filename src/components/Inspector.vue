@@ -1,31 +1,34 @@
 <template>
   <div class="inspector-container">
+    <!-- 1. 空状态提示 -->
     <div v-if="!store.currentActiveEntry" class="empty-state">
       <p>👈 请在侧边栏选择一个实体以查看详情</p>
       <p>或点击上方“新建”创建条目</p>
     </div>
 
-    <div v-else class="inspector-content">
+    <!-- 2. 数据渲染区：增加 v-if="entry" 确保数据存在时才渲染，彻底防止崩溃 -->
+    <div v-else-if="entry" class="inspector-content">
       <div class="header-actions">
         <button class="btn-edit-trigger" @click="startEditing">📝 编辑条目</button>
       </div>
 
       <header class="meta-header">
-        <div class="domain-badge" :class="`is-${entry.domain}`">
-          {{ entry.domain === "physical" ? "🧱 具象域" : "🌌 抽象域" }}
+        <!-- 使用 entry?.domain 防止报错 -->
+        <div class="domain-badge" :class="`is-${entry?.domain}`">
+          {{ entry?.domain === "physical" ? "🧱 具象域" : "🌌 抽象域" }}
         </div>
-        <h2 class="entry-title">{{ entry.name || entry.id }}</h2>
-        <div class="entry-real-id" v-if="entry.name">ID: {{ entry.id }}</div>
-        <div class="sub-category-label">{{ entry.sub_category }}</div>
+        <h2 class="entry-title">{{ entry?.name || entry?.id || "未命名实体" }}</h2>
+        <div class="entry-real-id" v-if="entry?.name">ID: {{ entry?.id }}</div>
+        <div class="sub-category-label">{{ entry?.sub_category }}</div>
       </header>
 
-      <blockquote class="summary-block" v-if="entry.summary">"{{ entry.summary }}"</blockquote>
+      <blockquote class="summary-block" v-if="entry?.summary">"{{ entry.summary }}"</blockquote>
 
-      <!-- 新增：关系网络面板 -->
+      <!-- 关系网络面板：增加 entry?.relations 保护 -->
       <section class="prop-section" v-if="hasRelations">
         <h4 class="section-title">🔗 人物关系 (Relationships)</h4>
         <div class="relation-list">
-          <div v-for="(rel, index) in entry.relations" :key="index" class="rel-item">
+          <div v-for="(rel, index) in entry?.relations || []" :key="index" class="rel-item">
             <span :class="['rel-badge', `type-${rel.type}`]">{{ getRelLabel(rel.type) }}</span>
             <span class="rel-target" @click="navigateTo(rel.target)">
               {{ getTargetName(rel.target) }}
@@ -39,7 +42,7 @@
         <h4 class="section-title">📊 静态属性 (Properties)</h4>
         <table class="prop-table">
           <tbody>
-            <tr v-for="(val, key) in entry.properties" :key="key">
+            <tr v-for="(val, key) in entry?.properties || {}" :key="key">
               <td class="prop-key">{{ key }}</td>
               <td class="prop-val" v-html="parseTokens(String(val))"></td>
             </tr>
@@ -47,7 +50,7 @@
         </table>
       </section>
 
-      <section class="info-section" v-if="entry.info && entry.info.length">
+      <section class="info-section" v-if="entry?.info?.length">
         <h4 class="section-title">📖 详情列 (Info)</h4>
         <div class="info-block" v-for="(block, index) in entry.info" :key="index">
           <h5 class="info-title">{{ block.title }}</h5>
@@ -63,24 +66,28 @@ import {computed} from "vue";
 import {store, setActiveEntry} from "../store";
 
 const entry = computed(() => {
-  // 直接依赖 store.currentActiveEntry，Vue 会自动追踪
-  const currentId = store.currentActiveEntry?.id;
-  return currentId ? store.forgeData[currentId] : store.currentActiveEntry;
+  if (!store.currentActiveEntry) return null;
+  return store.currentActiveEntry;
 });
-const hasProperties = computed(() => entry.value && entry.value.properties && Object.keys(entry.value.properties).length > 0);
-const hasRelations = computed(() => entry.value?.sub_category === "character" && entry.value?.relations?.length > 0);
+
+const hasProperties = computed(() => {
+  const props = entry.value?.properties;
+  return props && Object.keys(props).length > 0;
+});
+
+const hasRelations = computed(() => {
+  return entry.value?.sub_category === "character" && Array.isArray(entry.value?.relations) && entry.value.relations.length > 0;
+});
 
 const startEditing = () => {
   store.isEditing = true;
 };
 
-// 关系名称映射
 const getRelLabel = (type) => {
   const map = {hostile: "敌对", friendly: "友善", neutral: "中立"};
   return map[type] || type;
 };
 
-// 获取目标显示名，回退到ID
 const getTargetName = (id) => {
   return store.forgeData[id]?.name || id;
 };
@@ -99,7 +106,8 @@ const parseTokens = (text) => {
   });
 };
 
-if (typeof window !== "undefined") {
+// 确保全局导航函数可用
+if (typeof window !== "undefined" && !window.__triggerEntityNav) {
   window.__triggerEntityNav = (id) => {
     if (store.forgeData[id]) setActiveEntry(id);
     else alert(`目标实体 [${id}] 在当前图谱中不存在！`);
@@ -202,7 +210,6 @@ if (typeof window !== "undefined") {
   border-radius: 3px;
   &:hover {
     background: var(--action-primary);
-    /* 优化：使用 bg-surface 代替 #fff */
     color: var(--bg-surface);
   }
 }

@@ -78,7 +78,7 @@ const renderGraph = () => {
     nodes.push({data: {id: e.id, label: e.name || e.id, domain: e.domain || "physical"}});
 
     if (viewMode.value === "global") {
-      const content = e.info?.map((i) => i.content).join(" ") || "";
+      const content = Array.isArray(e.info) ? e.info.map((i) => i.content).join(" ") : "";
       const regex = /\[.*?:(.*?)\|.*?\]/g;
       let match;
       while ((match = regex.exec(content)) !== null) {
@@ -97,14 +97,20 @@ const renderGraph = () => {
     container: cyRef.value,
     elements: {nodes, edges},
     style: [
+      // --- 节点样式 ---
       {
-        selector: "node",
+        selector: "node", // 基础通用样式 (所有节点都有)
         style: {
           "background-color": (ele) => getNodeColor(ele.data("domain")),
           color: getComputedColor("--text-main"),
-          label: "data(label)",
           width: 20,
           height: 20,
+        },
+      },
+      {
+        selector: "node[label]", // 仅对有 label 的节点生效
+        style: {
+          label: "data(label)",
           "font-size": 11,
           "text-valign": "top",
           "text-margin-y": -10,
@@ -114,8 +120,10 @@ const renderGraph = () => {
           "text-background-shape": "roundrectangle",
         },
       },
+
+      // --- 边样式 ---
       {
-        selector: "edge",
+        selector: "edge", // 基础通用样式 (所有边都有)
         style: {
           "curve-style": "bezier",
           "control-point-step-size": 80,
@@ -123,6 +131,11 @@ const renderGraph = () => {
           "line-color": getComputedColor("--text-dim"),
           "target-arrow-color": getComputedColor("--text-dim"),
           "target-arrow-shape": "triangle",
+        },
+      },
+      {
+        selector: "edge[label]", // 仅对有 label 的边生效
+        style: {
           label: "data(label)",
           "font-size": 10,
           color: getComputedColor("--text-main"),
@@ -131,9 +144,9 @@ const renderGraph = () => {
         },
       },
       {selector: "node.faded", style: {opacity: 0.15}},
-      {selector: "edge.faded", style: {opacity: 0.05, "edge-text-opacity": 0}},
+      {selector: "edge.faded", style: {opacity: 0.05, "text-opacity": 0}},
       {selector: "node.highlighted", style: {opacity: 1, "border-width": 3, "border-color": getComputedColor("--text-main")}},
-      {selector: "edge:selected, edge.highlighted", style: {"edge-text-opacity": 1, width: 3}},
+      {selector: "edge:selected, edge.highlighted", style: {"text-opacity": 1, width: 3}},
       {selector: 'edge[type="hostile"]', style: {"line-color": getComputedColor("--status-warn"), "target-arrow-color": getComputedColor("--status-warn")}},
       {selector: 'edge[type="friendly"]', style: {"line-color": getComputedColor("--status-success"), "target-arrow-color": getComputedColor("--status-success")}},
       {selector: 'edge[type="neutral"]', style: {"line-color": getComputedColor("--status-info"), "target-arrow-color": getComputedColor("--status-info")}},

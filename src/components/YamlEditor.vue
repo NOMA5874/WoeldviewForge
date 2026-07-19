@@ -3,7 +3,8 @@
     <header class="editor-header">
       <div class="title-area">
         <button class="btn-back" @click="store.isEditing = false">← 返回看板</button>
-        <h3>编辑实体: {{ store.currentActiveEntry?.id }}</h3>
+        <!-- 使用可选链防止崩溃 -->
+        <h3>编辑实体: {{ store.currentActiveEntry?.id || "新建实体" }}</h3>
       </div>
       <button class="btn-save" @click="handleSave" :disabled="isSaving">
         {{ isSaving ? "保存中..." : "保存修改" }}
@@ -16,7 +17,7 @@
         <div class="form-row grid-4">
           <div class="form-group">
             <label>唯一标识 (ID)</label>
-            <input type="text" v-model="form.id" :disabled="!isNewEntry" placeholder="不可变标识" />
+            <input type="text" v-model.lazy="form.id" :disabled="isExistingEntry" placeholder="不可变标识" />
           </div>
           <div class="form-group">
             <label>显示名 (Name)</label>
@@ -45,7 +46,7 @@
           <textarea v-model="form.summary" rows="2" placeholder="用于卡片预览的一句话简介..."></textarea>
         </div>
 
-        <!-- 标签阵列区 (Tags) -->
+        <!-- 标签阵列区 -->
         <div class="form-group complex-group">
           <label>特性标签 (Tags)</label>
           <div class="tags-container">
@@ -57,7 +58,7 @@
           </div>
         </div>
 
-        <!-- 静态属性池 (Properties: 动态键值对) -->
+        <!-- 静态属性池 -->
         <div class="form-group complex-group">
           <label class="group-header">
             静态属性池 (Properties)
@@ -70,11 +71,10 @@
               <input type="text" class="prop-val" v-model="form.properties[key]" placeholder="属性值" />
               <button class="btn-remove-icon" @click="removeProperty(key)">×</button>
             </div>
-            <div v-if="!form.properties || Object.keys(form.properties).length === 0" class="empty-hint">暂无私有属性</div>
           </div>
         </div>
 
-        <!-- 关系网络 (Relationships) -->
+        <!-- 关系网络 -->
         <div v-if="form.sub_category === 'character'" class="form-group complex-group">
           <label class="group-header">
             🔗 关系网络 (Relationships)
@@ -91,11 +91,10 @@
               <input type="text" v-model="rel.description" placeholder="关系备注" class="rel-desc" />
               <button class="btn-remove-icon" @click="removeRelation(index)">×</button>
             </div>
-            <div v-if="!form.relations || form.relations.length === 0" class="empty-hint">暂无关联关系</div>
           </div>
         </div>
 
-        <!-- 动态详情列表 (Info Blocks) -->
+        <!-- 动态详情列 -->
         <div class="form-group complex-group">
           <label class="group-header">
             动态详情列 (Info)
@@ -104,43 +103,39 @@
           <div class="info-list">
             <div class="info-item" v-for="(block, index) in form.info" :key="index">
               <div class="info-header">
-                <input type="text" v-model="block.title" placeholder="区块标题 (如: 生平经历)" />
+                <input type="text" v-model="block.title" placeholder="区块标题" />
                 <button class="btn-remove-icon" @click="removeInfoBlock(index)">×</button>
               </div>
-
-              <!-- [契约升级] 新增快捷格式化工具栏与关联的 ref -->
               <div class="info-content-wrapper">
                 <div class="format-toolbar">
-                  <button class="btn-format" @click="wrapText(index, 'quote')" title="快捷插入引用">🔗 引用 [quote]</button>
-                  <button class="btn-format" @click="wrapText(index, 'style')" title="快捷插入样式">✨ 样式 [style]</button>
+                  <button class="btn-format" @click="wrapText(index, 'quote')">🔗 引用</button>
+                  <button class="btn-format" @click="wrapText(index, 'style')">✨ 样式</button>
                 </div>
-                <textarea :ref="(el) => setInfoTextareaRef(el, index)" v-model="block.content" rows="3" placeholder="选中文本后点击上方按钮，或直接输入 [类型:参数|显示文本] 行内标记..."></textarea>
+                <textarea :ref="(el) => setInfoTextareaRef(el, index)" v-model="block.content" rows="3"></textarea>
               </div>
             </div>
-            <div v-if="!form.info || form.info.length === 0" class="empty-hint">暂无详情区块</div>
           </div>
         </div>
       </section>
 
-      <!-- 下半部分：YAML 纯净代码底座 (Raw Source) -->
       <section class="code-base">
         <div class="code-header">
           <span>🛠️ 纯净 YAML 源文件映射</span>
           <span class="error-msg" v-if="yamlError">{{ yamlError }}</span>
         </div>
-        <textarea class="yaml-textarea" v-model="rawYamlString" spellcheck="false"></textarea>
+        <textarea class="yaml-textarea" v-model.lazy="yamlString" spellcheck="false"></textarea>
       </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import {ref, reactive, watch, computed, nextTick} from "vue";
+import {ref, reactive, watch, nextTick, computed} from "vue";
 import yaml from "js-yaml";
 import {store} from "../store";
 
-// 1. 初始化表单状态 (深拷贝隔离)
-const rawInitialData = JSON.parse(JSON.stringify(store.currentActiveEntry));
+// 1. 初始化表单
+const rawInitialData = JSON.parse(JSON.stringify(store.currentActiveEntry || {}));
 const form = reactive({
   id: rawInitialData.id || "",
   name: rawInitialData.name || "",
@@ -153,188 +148,179 @@ const form = reactive({
   relations: rawInitialData.relations || [],
 });
 
-const isNewEntry = computed(() => String(form.id).startsWith("new_entity_"));
+// 在 script setup 中找到 isNewEntry 的定义，修改为：
 
-// 2. 双向同步引擎状态
-const rawYamlString = ref("");
+// 1. 定义一个标识，判断是否为“已保存的实体”
+// 如果初始数据 ID 不是以 new_ entity_ 开头，说明它是个已存在的实体，不能改 ID
+const isExistingEntry = !!rawInitialData.id && !rawInitialData.id.startsWith("new_entity_");
+
+// 2. 依然保留 isNewEntry 用于其他逻辑（如判断是否需要显示一些特殊提示）
+const isNewEntry = computed(() => String(form.id).startsWith("new_entity_"));
+// [修复] 变量名统一为 yamlString
+
+const yamlString = ref("");
 const yamlError = ref("");
+
 let isUpdatingFromForm = false;
 let isUpdatingFromYaml = false;
 
-// 初始序列化一次
-rawYamlString.value = yaml.dump(JSON.parse(JSON.stringify(form)), {lineWidth: -1});
+// 初始化 YAML
+yamlString.value = yaml.dump(JSON.parse(JSON.stringify(form)), {lineWidth: -1});
 
-watch(
-  form,
-  (newForm) => {
-    if (isUpdatingFromYaml) return;
-    isUpdatingFromForm = true;
-    try {
-      const pureObject = JSON.parse(JSON.stringify(newForm));
-      rawYamlString.value = yaml.dump(pureObject, {lineWidth: -1});
-      yamlError.value = "";
-    } catch (error) {
-      console.error("YAML 序列化失败:", error);
-    }
-    Promise.resolve().then(() => {
+const debounce = (fn, delay = 500) => {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+};
+
+// 2. 同步逻辑
+const syncYaml = debounce((newForm) => {
+  isUpdatingFromForm = true;
+  try {
+    // 1. 序列化为 YAML (保持现有功能)
+    const cleanData = JSON.parse(JSON.stringify(newForm));
+    yamlString.value = yaml.dump(cleanData, {lineWidth: -1});
+
+    // 2. [新增] 实时同步到 store，让 Inspector 立即感知变化
+    // 我们直接更新 store 中的 activeEntry，这样 Inspector 会自动响应
+    Object.assign(store.currentActiveEntry, cleanData);
+
+    yamlError.value = "";
+  } catch (error) {
+    console.error("YAML 序列化失败:", error);
+  } finally {
+    setTimeout(() => {
       isUpdatingFromForm = false;
-    });
-  },
-  {deep: true}
-);
+    }, 100);
+  }
+}, 300); // 防抖时间建议 300ms，这样联动感更强
 
-watch(rawYamlString, (newYaml) => {
-  if (isUpdatingFromForm) return;
+const syncForm = debounce((newYaml) => {
   isUpdatingFromYaml = true;
   try {
     const parsed = yaml.load(newYaml);
+    // [增强] 仅在解析为对象时处理，防止空值破坏结构
     if (parsed && typeof parsed === "object") {
-      form.id = parsed.id || "";
-      form.name = parsed.name || "";
-      form.domain = parsed.domain || "physical";
-      form.sub_category = parsed.sub_category || "";
-      form.summary = parsed.summary || "";
-      form.tags = parsed.tags || [];
-      form.properties = parsed.properties || {};
-      form.info = parsed.info || [];
-      form.relations = parsed.relations || [];
+      if (JSON.stringify(form) !== JSON.stringify(parsed)) {
+        Object.assign(form, parsed);
+      }
       yamlError.value = "";
     }
   } catch (error) {
     yamlError.value = `解析异常: ${error.message}`;
+  } finally {
+    setTimeout(() => {
+      isUpdatingFromYaml = false;
+    }, 100);
   }
-  Promise.resolve().then(() => {
-    isUpdatingFromYaml = false;
-  });
-});
+}, 500);
 
-// 3. 表单快捷交互方法
+// 3. 监听器
+watch(
+  form,
+  (newForm) => {
+    if (isUpdatingFromYaml) return;
+    syncYaml(newForm);
+  },
+  {deep: true}
+);
+
+watch(yamlString, (newYaml) => {
+  if (isUpdatingFromForm) return;
+  syncForm(newYaml);
+});
+watch(
+  () => store.currentActiveEntry,
+  (newEntry) => {
+    if (newEntry) {
+      // 1. 深拷贝新数据到 form
+      const data = JSON.parse(JSON.stringify(newEntry));
+      Object.assign(form, data);
+
+      // 2. 强制重置 YAML 字符串以匹配新实体
+      yamlString.value = yaml.dump(data, {lineWidth: -1});
+
+      // 3. 清除错误信息
+      yamlError.value = "";
+    }
+  },
+  {deep: true}
+);
+
+// 4. 工具方法保持不变
 const newTagInput = ref("");
 const addTag = () => {
-  const val = newTagInput.value.trim();
-  if (val && !form.tags.includes(val)) {
-    form.tags.push(val);
-  }
+  if (newTagInput.value.trim() && !form.tags.includes(newTagInput.value.trim())) form.tags.push(newTagInput.value.trim());
   newTagInput.value = "";
 };
 const removeTag = (index) => form.tags.splice(index, 1);
-
 const addProperty = () => {
   const newKey = `new_key_${Date.now().toString().slice(-4)}`;
   form.properties[newKey] = "";
 };
 const removeProperty = (key) => delete form.properties[key];
 const updatePropertyKey = (oldKey, newKey) => {
-  const trimmedNewKey = newKey.trim();
-  if (!trimmedNewKey || oldKey === trimmedNewKey) return;
-  form.properties[trimmedNewKey] = form.properties[oldKey];
-  delete form.properties[oldKey];
+  const trimmed = newKey.trim();
+  if (trimmed && oldKey !== trimmed) {
+    form.properties[trimmed] = form.properties[oldKey];
+    delete form.properties[oldKey];
+  }
 };
-
-const addRelation = () => {
-  form.relations.push({target: "", type: "neutral", description: ""});
-};
+const addRelation = () => form.relations.push({target: "", type: "neutral", description: ""});
 const removeRelation = (index) => form.relations.splice(index, 1);
-
 const addInfoBlock = () => form.info.push({title: "", content: ""});
 const removeInfoBlock = (index) => form.info.splice(index, 1);
 
-const allExistingSubCategories = computed(() => {
-  const categories = new Set();
-  Object.values(store.forgeData).forEach((item) => {
-    if (item.sub_category) categories.add(item.sub_category);
-  });
-  return Array.from(categories).sort();
-});
-
-// --- [契约升级] 快捷文本包裹核心逻辑 ---
 const infoTextareaRefs = ref([]);
-// 收集模板中 v-for 渲染的 textarea DOM 实例
 const setInfoTextareaRef = (el, index) => {
-  if (el) {
-    infoTextareaRefs.value[index] = el;
-  }
+  if (el) infoTextareaRefs.value[index] = el;
 };
-
 const wrapText = async (index, type) => {
   const textarea = infoTextareaRefs.value[index];
   if (!textarea) return;
-
-  const startPos = textarea.selectionStart;
-  const endPos = textarea.selectionEnd;
-  const currentContent = form.info[index].content || "";
-
-  // 1. 提取选中文本（如果没有选中，则提供缺省词汇）
-  const selectedText = currentContent.substring(startPos, endPos) || "选中文本";
-
-  // 2. 准备包裹标记和需要高亮的引导参数
-  let prefix = "";
-  let placeholder = "";
-
-  if (type === "quote") {
-    prefix = "[quote:";
-    placeholder = "id";
-  } else if (type === "style") {
-    prefix = "[style:";
-    placeholder = "令牌";
-  }
-  const suffix = `|${selectedText}]`;
-
-  // 3. 拼接新字符串并更新双向绑定
-  const newText = currentContent.substring(0, startPos) + prefix + placeholder + suffix + currentContent.substring(endPos);
-  form.info[index].content = newText;
-
-  // 4. 等待 Vue 完成 DOM 渲染更新
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const content = form.info[index].content || "";
+  const prefix = type === "quote" ? "[quote:id|" : "[style:令牌|";
+  const selected = content.substring(start, end) || "选中文本";
+  form.info[index].content = content.substring(0, start) + prefix + selected + "]" + content.substring(end);
   await nextTick();
-
-  // 5. 计算 placeholder (id 或 令牌) 在新字符串中的准确坐标
-  const cursorStart = startPos + prefix.length;
-  const cursorEnd = cursorStart + placeholder.length;
-
-  // 6. 重新聚焦并将光标选中 placeholder 区域
   textarea.focus();
-  textarea.setSelectionRange(cursorStart, cursorEnd);
 };
-// ----------------------------------------
 
-// 4. 落盘保存交互
+const allExistingSubCategories = computed(() => {
+  const cats = new Set();
+  Object.values(store.forgeData || {}).forEach((e) => {
+    if (e.sub_category) cats.add(e.sub_category);
+  });
+  return Array.from(cats);
+});
+
 const isSaving = ref(false);
 const handleSave = async () => {
-  if (typeof form.id !== "string") {
-    alert("检测到 ID 数据异常，请联系开发者。");
+  if (!form.id?.trim()) {
+    alert("ID 不能为空");
     return;
   }
   if (yamlError.value) {
-    alert("YAML 语法存在错误，请在底座编辑器中修正后再保存！");
-    return;
-  }
-  if (!form.id.trim()) {
-    alert("唯一标识 (ID) 不能为空！");
+    alert("YAML 语法有误！");
     return;
   }
 
   isSaving.value = true;
   try {
-    const payload = JSON.parse(JSON.stringify(form));
-    const success = store.saveCurrentEntry(id, yamlString, fullData);
-
-    if (success) {
-      store.forgeData[payload.id] = payload;
-      store.currentActiveEntry = store.forgeData[payload.id];
-      store.notifyUpdate();
-      store.isEditing = false;
-    } else {
-      throw new Error("后端保存请求未返回成功，请检查服务器日志");
-    }
-  } catch (error) {
-    console.error("保存失败:", error);
-    alert(`保存失败: ${error.message}`);
+    const success = await store.saveCurrentEntry(form.id, yamlString.value, JSON.parse(JSON.stringify(form)));
+    if (success) store.isEditing = false;
+    else throw new Error("保存失败");
+  } catch (e) {
+    alert(e.message);
   } finally {
     isSaving.value = false;
   }
 };
 </script>
-
 <style scoped lang="scss">
 .yaml-editor-container {
   display: flex;
@@ -557,7 +543,6 @@ const handleSave = async () => {
     justify-content: space-between;
     .error-msg {
       color: var(--status-warn);
-      /* 修复：移除 white */
       background: var(--bg-surface);
       padding: 2px 6px;
       border-radius: 4px;
@@ -566,10 +551,8 @@ const handleSave = async () => {
   .yaml-textarea {
     flex: 1;
     width: 100%;
-    /* 修复：移除 #1e1e1e，使用 canvas 背景，适配所有主题 */
-    background: var(--bg-canvas);
-    /* 修复：移除 #d4d4d4，使用 text-main 确保文字清晰 */
-    color: var(--text-main);
+    background: var(--text-main);
+    color: var(--bg-surface);
     font-family: var(--theme-font-family);
     padding: 12px;
     border: none;

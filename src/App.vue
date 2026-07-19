@@ -11,7 +11,7 @@
 
       <!-- 主工作区 -->
       <div class="layout-canvas">
-        <YamlEditor v-if="store.isEditing && store.currentActiveEntry" :key="store.currentActiveEntry.id" />
+        <YamlEditor v-if="store.isEditing && store.currentActiveEntry" />
         <GraphDashboard v-else />
       </div>
 
@@ -75,7 +75,6 @@ const stopResizing = () => {
 };
 onMounted(() => {
   document.documentElement.setAttribute("data-theme", store.currentTheme);
-  loadForgeData();
 });
 </script>
 

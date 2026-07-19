@@ -1,20 +1,15 @@
 import yaml from "js-yaml";
 
-let directoryHandle = null;
+let directoryHandle = null; // 确保这个变量在模块作用域内
 
-// 初始化：请求获取目录权限
-export const requestDirectoryAccess = async () => {
+export async function requestDirectoryAccess() {
   try {
-    directoryHandle = await window.showDirectoryPicker({
-      mode: "readwrite", // 请求读写权限
-    });
-    return true;
+    directoryHandle = await window.showDirectoryPicker();
+    return directoryHandle;
   } catch (err) {
-    console.error("用户拒绝了目录访问或发生错误:", err);
-    return false;
+    return null;
   }
-};
-
+}
 // 获取全量数据 (对应原 GET /api/forge-data)
 export const loadAllData = async () => {
   if (!directoryHandle) throw new Error("尚未获取目录访问权限");
