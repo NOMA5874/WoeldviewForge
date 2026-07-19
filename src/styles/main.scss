@@ -1,0 +1,73 @@
+@use "variables"; // 确保加载变量定义
+@use "themes"; // 确保加载主题覆盖
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  // 使用 CSS 变量控制全局样式
+  font-family: var(--theme-font-family, sans-serif);
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+
+  .layout-sidebar {
+    width: 280px;
+    background: var(--bg-surface);
+    border-right: var(--border-main);
+    overflow-y: auto;
+  }
+
+  .layout-canvas {
+    flex: 1;
+    background: var(--bg-canvas);
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .layout-inspector {
+    width: 320px;
+    border-left: var(--border-main);
+    background: var(--bg-inspector);
+    transition: background-color 0.3s ease;
+
+    // --- 智能响应域背景色 (无需手动定义每一个背景色) ---
+    // color-mix 将 10% 的 Accent 色与 90% 的 Inspector 底色混合
+    // 这样无论怎么改主题，背景色永远和谐
+    &[data-domain="physical"] {
+      background: color-mix(in srgb, var(--accent-physical), var(--bg-inspector) 90%);
+    }
+    &[data-domain="conceptual"] {
+      background: color-mix(in srgb, var(--accent-conceptual), var(--bg-inspector) 90%);
+    }
+  }
+}
+
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}

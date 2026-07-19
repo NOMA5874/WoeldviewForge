@@ -1,0 +1,81 @@
+[data-theme="summer"] {
+  /* --- 背景 --- */
+  --bg-page: #eaf6f7; /* 淡淡的冰蓝底色 */
+  --bg-surface: #ffffff; /* 纯净白 */
+  --bg-canvas: #f2fbfa; /* 极浅的薄荷冰 */
+  --bg-active: #d1e8e8; /* 激活态的冰块色 */
+
+  /* --- 文字 --- */
+  --text-main: #2c3e50; /* 深海军蓝，保持阅读舒适度 */
+  --text-secondary: #5d6d7e;
+  --text-dim: #95a5a6;
+  --border-main: 1px solid #cce5e7;
+
+  /* --- 交互 (海蓝与柠檬黄) --- */
+  --action-primary: #007bbd; /* 海蓝色 */
+  --action-danger: #e74c3c;
+  --action-hover: rgba(247, 213, 71, 0.2); /* 柠檬黄悬浮感 */
+
+  /* --- 状态 --- */
+  --status-warn: #e67e22; /* 阳光橙 */
+  --status-success: #27ae60;
+  --status-info: #3498db;
+
+  /* --- 域专有 --- */
+  --accent-physical: #00a0b0; /* 海洋绿蓝 */
+  --accent-conceptual: #89cff0; /* 冰蓝色 */
+}
+[data-theme="midnight"] {
+  /* --- 背景 --- */
+  --bg-page: #0f172a; /* 墨蓝色背景 */
+  --bg-surface: #1e293b; /* 稍微亮一点的卡片背景 */
+  --bg-canvas: #0f172a;
+  --bg-active: #334155;
+
+  /* --- 文字 --- */
+  --text-main: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-dim: #64748b;
+  --border-main: 1px solid #334155;
+
+  /* --- 交互 --- */
+  --action-primary: #38bdf8; /* 天蓝色 */
+  --action-danger: #f43f5e;
+  --action-hover: rgba(56, 189, 248, 0.2);
+
+  /* --- 状态 --- */
+  --status-warn: #fbbf24;
+  --status-success: #22c55e;
+  --status-info: #8b5cf6;
+
+  /* --- 域专有 --- */
+  --accent-physical: #2dd4bf; /* 绿松石色 */
+  --accent-conceptual: #c084fc; /* 紫色 */
+}
+[data-theme="retro"] {
+  /* --- 背景 --- */
+  --bg-page: #f5f0e6; /* 羊皮纸底色 */
+  --bg-surface: #fdfaf6; /* 温暖的纸白 */
+  --bg-canvas: #ede6d9;
+  --bg-active: #e6dfd1;
+
+  /* --- 文字 --- */
+  --text-main: #4a4130; /* 深褐色文字 */
+  --text-secondary: #7d7565;
+  --text-dim: #a69f91;
+  --border-main: 1px solid #dcd3c1;
+
+  /* --- 交互 --- */
+  --action-primary: #a0522d; /* 赭石色 */
+  --action-danger: #bc4749;
+  --action-hover: rgba(160, 82, 45, 0.1);
+
+  /* --- 状态 --- */
+  --status-warn: #d68c45;
+  --status-success: #6b8e23;
+  --status-info: #6a5acd;
+
+  /* --- 域专有 --- */
+  --accent-physical: #8b4513; /* 鞍褐色 */
+  --accent-conceptual: #708090; /* 岩石灰蓝 */
+}

@@ -1,0 +1,11 @@
+﻿id: item_excalibur
+name: 圣剑 Excalibur
+domain: physical
+sub_category: object
+summary: 象征王权的神秘武器。
+tags: [圣遗物, 武器]
+properties: 
+  origin: 湖中夫人
+info:
+  - title: 来源
+    content: 由[quote:item_lake|湖中夫人]赠予[quote:char_arthur|亚瑟王]，是卡美洛不可动摇的守护。

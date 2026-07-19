@@ -1,0 +1,11 @@
+﻿id: loc_camelot
+name: 卡美洛城
+domain: physical
+sub_category: location
+summary: 亚瑟王传说中的理想国度。
+tags: [地点, 城市]
+properties: 
+  status: 兴盛
+info:
+  - title: 概况
+    content: 由[quote:char_arthur|亚瑟王]统治的王都，是圆桌骑士团的聚集地，代表了[quote:concept_chivalry|骑士精神]的最高体现。

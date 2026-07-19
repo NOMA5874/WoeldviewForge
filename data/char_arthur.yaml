@@ -1,0 +1,19 @@
+﻿id: char_arthur
+name: 亚瑟·潘德拉贡
+domain: physical
+sub_category: character
+summary: 卡美洛的建立者，不列颠之王。
+tags: [领袖, 骑士]
+properties: 
+  age: 35
+  status: 存活
+info:
+  - title: 生平经历
+    content: 在梅林的指引下拔出[quote:item_excalibur|圣剑]，统一不列颠并建立[quote:loc_camelot|卡美洛城]，通过[quote:concept_chivalry|骑士精神]确立了圆桌秩序。
+relations:
+  - target: char_merlin
+    type: friendly
+    description: 导师与挚友
+  - target: char_morgana
+    type: hostile
+    description: 宿命的死敌

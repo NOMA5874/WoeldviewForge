@@ -1,0 +1,24 @@
+{
+  "name": "worldview-forge",
+  "version": "2.1.0",
+  "type": "module",
+  "scripts": {
+    "dev:ui": "vite",
+    "dev:server": "node server/index.js",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:ui\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "cytoscape": "^3.34.0",
+    "cytoscape-fcose": "^2.2.0",
+    "express": "^4.18.2",
+    "js-yaml": "^4.1.0",
+    "vue": "^3.3.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.2.3",
+    "concurrently": "^8.2.0",
+    "sass": "^1.63.6",
+    "vite": "^4.4.0"
+  }
+}
