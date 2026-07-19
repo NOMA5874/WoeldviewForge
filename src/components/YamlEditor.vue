@@ -137,7 +137,7 @@
 <script setup>
 import {ref, reactive, watch, computed, nextTick} from "vue";
 import yaml from "js-yaml";
-import {store, saveEntry} from "../store";
+import {store} from "../store";
 
 // 1. 初始化表单状态 (深拷贝隔离)
 const rawInitialData = JSON.parse(JSON.stringify(store.currentActiveEntry));
@@ -316,7 +316,7 @@ const handleSave = async () => {
   isSaving.value = true;
   try {
     const payload = JSON.parse(JSON.stringify(form));
-    const success = await saveEntry(payload.id, rawYamlString.value, payload);
+    const success = store.saveCurrentEntry(id, yamlString, fullData);
 
     if (success) {
       store.forgeData[payload.id] = payload;

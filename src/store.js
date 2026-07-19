@@ -1,24 +1,46 @@
 import {reactive} from "vue";
-import {fetchForgeData} from "./api"; // 假设 api.js 包含此方法
+import {loadAllData, saveEntry, requestDirectoryAccess} from "./services/dataService";
 
 export const store = reactive({
-  forgeData: {}, // 数据的唯一真实来源 (Source of Truth)
-  currentActiveEntry: null, // 当前编辑或查看的对象
-  searchQuery: "",
-  currentTheme: localStorage.getItem("theme") || "default",
+  forgeData: {},
   isEditing: false,
+  currentActiveEntry: null,
+  currentTheme: "summer", // 假设你有这个属性
+
+  // 初始化加载
+  async initData() {
+    const hasAccess = await requestDirectoryAccess();
+    if (hasAccess) {
+      this.forgeData = await loadAllData();
+    }
+  },
+
+  // 【核心方法】保存条目 (替代了原先的 saveCurrentEntry)
+  async saveCurrentEntry(id, yamlString, fullData) {
+    // 1. 调用服务层保存到磁盘
+    const success = await saveEntry(id, yamlString);
+
+    if (success) {
+      // 2. 更新内存数据 (响应式更新)
+      this.forgeData[id] = JSON.parse(JSON.stringify(fullData));
+
+      // 3. 同步更新当前编辑态
+      if (this.currentActiveEntry?.id === id) {
+        this.currentActiveEntry = this.forgeData[id];
+      }
+      return true;
+    }
+    return false;
+  },
 });
 
-// --- 数据加载 ---
+// --- 数据同步与操作 ---
+
+// 替换掉原先的 loadForgeData，改用 initData
 export async function loadForgeData() {
-  const response = await fetchForgeData();
-  if (response.success) {
-    // 直接赋值，Vue 能够自动追踪 forgeData 的整体变化
-    store.forgeData = response.data;
-  }
+  await store.initData();
 }
 
-// --- 状态操作 ---
 export function exitToDashboard() {
   store.currentActiveEntry = null;
   store.isEditing = false;
@@ -29,7 +51,6 @@ export function toggleTheme() {
   document.documentElement.setAttribute("data-theme", store.currentTheme);
 }
 
-// 设置选中条目 (保持深拷贝，避免直接修改原始数据)
 export function setActiveEntry(id) {
   if (store.forgeData[id]) {
     store.currentActiveEntry = JSON.parse(JSON.stringify(store.forgeData[id]));
@@ -37,7 +58,6 @@ export function setActiveEntry(id) {
 }
 
 export function triggerNewEntry() {
-  // 1. 初始化空白数据
   store.currentActiveEntry = {
     id: `new_entity_${Date.now()}`,
     name: "",
@@ -49,40 +69,8 @@ export function triggerNewEntry() {
     info: [],
     relations: [],
   };
-
-  // 2. 确保面板被打开
   store.isEditing = true;
 }
-
-// --- 数据持久化与同步 ---
-export const saveEntry = async (id, yamlString, fullData) => {
-  try {
-    const response = await fetch("/api/save-entry", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({id, content: yamlString, data: fullData}),
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      // 核心优化点：直接更新数据源，Vue 会自动通知所有组件刷新
-      store.forgeData[id] = JSON.parse(JSON.stringify(fullData));
-
-      // 如果当前正在编辑此项，同步更新 UI 展示
-      if (store.currentActiveEntry?.id === id) {
-        store.currentActiveEntry = store.forgeData[id];
-      }
-      return true;
-    }
-
-    console.error("后端拒绝请求:", result.message);
-    return false;
-  } catch (err) {
-    console.error("网络/解析错误:", err);
-    return false;
-  }
-};
 
 export const setTheme = (themeName) => {
   store.currentTheme = themeName;
